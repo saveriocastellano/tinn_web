@@ -1,2 +1,2 @@
-# tinn_web
+# TINN WEB
 Simple web controller for TINN
