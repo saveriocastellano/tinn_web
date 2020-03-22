@@ -212,7 +212,7 @@ var RequestController = new function()
 						if (inPrintJs)	{
 							pageOut += "echo("+pageContent.substr(0, _iStart)+"+\'\');";
 						} else {
-							pageOut += pageContent.substr(0, _iStart) +';';
+							pageOut += pageContent.substr(0, _iStart);
 						}
 					}
 					inJs = !inJs;
@@ -268,7 +268,7 @@ var RequestController = new function()
 			}				
 		} else 
 		{
-			if (e.stack) this.response('<pre>'+e.stack + "</pre>");  
+			if (e.stack && !(e instanceof RequestControllerExit)) this.response('<pre>'+e.stack + "</pre>");  
 			if (halt) {
 				RequestController.exit();
 			}			
