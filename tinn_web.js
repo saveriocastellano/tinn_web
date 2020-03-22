@@ -317,7 +317,7 @@ var RequestController = new function()
 		if (this._response != '') { 
 			Http.print("\r\n"+this._response);
 		} else {
-			Http.print("\r\nTINN Web");
+			Http.print("\r\n");
 		}
 		this._sent = true;
 	}	
