@@ -1,25 +1,15 @@
+/*
+Copyright (c) 2020 TINN Web by Saverio Castellano. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+*/
 
-Function.prototype.error = null;
-
-Function.prototype.tryCatch = function(func, ctx, args) {
-
-    this.error = null;
-
-    try {
-         return func.apply(ctx, args);
-    } catch (e) 
-    {
-        this.error = e;
-    }
+class RequestControllerExit extends Error {
+  constructor(message) {
+    super(message); // (1)
+    this.name = "RequestControllerExit"; // (2)
+  }
 }
-
-Function.prototype.hasCaught = function () { return  this.error != null;  }
-
-function RequestControllerExit(message) {
-	Error.call(this, message);
-}
-
-RequestControllerExit.prototype = Object.create(Error.prototype);
 
 class PageNotFound extends Error {
   constructor(message) {
@@ -27,6 +17,7 @@ class PageNotFound extends Error {
     this.name = "PageNotFound"; // (2)
   }
 }
+
 var RequestController = new function() 
 {	
 	this.DEFAULT_PAGE = 'index.html';
@@ -133,13 +124,6 @@ var RequestController = new function()
 		});
 	}	
 
-	this._installFunction = function(what) {
-		if (!this._funcs[what]) {
-			this._funcs[what] = function(txt) {RequestController.response.call(RequestController, txt);};
-		}
-	}
-	
-	
 	this._preparePageEnv = function(){ 
 		this._globalBkp = {};
 		for (var i=0; i<this._pageEnv.length; i++) {
@@ -274,9 +258,10 @@ var RequestController = new function()
 		
 		if (typeof(this._errorHandler)!='undefined')
 		{
-			Function.tryCatch(this._errorHandler, this, [e]);
-			if (Function.hasCaught()) {
-				this.response("error in error handler: " +  Function.error + ". Original error: " + e.stack);
+			try{
+				this._errorHandler.call(this, e);
+			} catch (err) {
+				this.response("error in error handler: " + err + ". Original error: " + e.stack);
 			}
 			if (halt) {
 				RequestController.exit();
@@ -395,21 +380,25 @@ var RequestController = new function()
 	this.processRequest = function(requestName) {
 	    if (typeof(this._requests[requestName])!='function') return true;
 		this._isScript = true;
-		Function.tryCatch(this._requests[requestName], this, []);
-		
-		if (Function.hasCaught()) {
+
+		try {
+			
+			this._requests[requestName].call(this);
+			
+		} catch (e) {
 			if (typeof(this._errorHandler)!='undefined')
 			{
-				Function.tryCatch(this._errorHandler, this, [Function.error]);
-				if (Function.hasCaught()) {
-					RequestController.printErrorIfNeeded(Function.error);
-				}				
+				try {
+					this._errorHandler.call(this, e);
+				} catch (err) {
+					RequestController.printErrorIfNeeded(err);
+				}
 			} else 
 			{
-			   RequestController.printErrorIfNeeded(Function.error);			   						
+			   RequestController.printErrorIfNeeded(e);			   						
 			}						
 			return false;
-		}
+		}		
 		return true;
 	}	
 	
