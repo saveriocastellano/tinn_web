@@ -1,14 +1,18 @@
 # TINN Web
-Super simple web controller for TINN
-
+TINN Web is a super simple web framework for TINN which provides the following functionalities:
+* simple functions to ease the processing of HTTP requests
+* customizable error handler to generate valid HTTP responses even when things go wrong
+* generation of HTTP response
+* support for dynamic webpages through `<?js ?>` tag (same as `<?php ?>` tag)
+* include functions for dynamic pages equivalent to `require`, `require_once`, `include`, `include_once` of `php`
+* web controller to map URLs to pages or request handlers
 
 # Install
-
-In local project do:
+Install through the `tinn` `install` command as a local package:
 ```sh
-$ tinn install tinn_web
+tinn install tinn_web 
 ```
-Or to install globallly:
+Or as a local package by adding the `-g` flag:
 ```sh
-$ tinn install tinn_web -g
+tinn install tinn_web -g
 ```
