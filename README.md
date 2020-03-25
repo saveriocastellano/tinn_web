@@ -1,4 +1,4 @@
-# TINN WEB
+# TINN Web
 Super simple web controller for TINN
 
 
