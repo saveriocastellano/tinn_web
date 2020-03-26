@@ -22,7 +22,7 @@ var RequestController = new function()
 {	
 	this.DEFAULT_PAGE = 'index.html';
 	this._requests = {};
-	this._pageEnv = ['echo', 'exit', 'url', 'include', 'includeOnce', 'setHeader', 'getHeader', 'getHeaders', 'getParam', 'getParams'];
+	this._pageEnv = [];
 	this._httpEnv = [
 		'GATEWAY_INTERFACE',
 		'SERVER_SOFTWARE',
@@ -59,14 +59,13 @@ var RequestController = new function()
 			this[func] = Function('','return Http.getParam("'+name+'")');
 			this._pageEnv.push(func);
 		}
-	}
-	
-	this.getContentType = function() {
 		
+		for (var k in RequestController) {
+			if (k.charAt(0)!='_') this._pageEnv.push(k);
+		}
 	}
-	
+
 	this._defaultRequestController = function(){
-		
 		var requestKey = '';
 		if (typeof(this._requestPath)=='undefined') return;
 		var reqParts = this._requestPath.split('/');
@@ -83,13 +82,14 @@ var RequestController = new function()
 		
 	this._getCacheDir = function(){ 
 		if (!this.CACHE_DIR) {
-			this.CACHE_DIR = path.resolve(RequestController.getServerRoot(), 'cache');
+			this.CACHE_DIR = path.resolve(RequestController._getServerRoot(), 'cache');
 		}
 		return this.CACHE_DIR;
 	}	
 		
-	this.getServerRoot = function()
+	this._getServerRoot = function()
 	{
+		if (typeof(this.SERVER_ROOT)!='undefined') return this.SERVER_ROOT;
 		if (!this._cwd)
 		{
 			this._cwd = path.resolve(path.dirname(process.mainModule.filename));	
@@ -167,7 +167,7 @@ var RequestController = new function()
 				}
 			}
 		}
-		return path.resolve(RequestController.getServerRoot(), 'pages', page);
+		return path.resolve(RequestController._getServerRoot(), 'pages', page);
 	}
 	
 	this._handleSubPage = function(pagePath, once){
@@ -238,7 +238,7 @@ var RequestController = new function()
 	}
 	
 	this._getCachePagePath = function(page) {
-		var root = RequestController.getServerRoot();
+		var root = RequestController._getServerRoot();
 		var cacheDir = RequestController._getCacheDir();
 		page = page.substr(root.length+1);
 		return path.resolve(cacheDir, page);
@@ -308,7 +308,7 @@ var RequestController = new function()
 		}
 	}	
 	
-	this.writeResponse = function(){ 
+	this._writeResponse = function(){ 
 		if (this._sent === true) return;
 		Http.print("Status: "+this._statusCode + (typeof(this._statusText)!='undefined'? ' ' + this._statusText : '')+"\r\n");
 		if (typeof(this._headers['Content-Length'])=='undefined') this._headers['Content-Length'] = this._response.length;
@@ -322,19 +322,8 @@ var RequestController = new function()
 		}
 		this._sent = true;
 	}	
-	
-	this.responseStatus = function(code, text) {
-		if (isNaN(code)) throw new Error("invalid reponse status code: " + code);
-		this._statusCode = code;
-		if (this._statusCode != 200) {
-			delete this._statusText;
-		}
-		if (typeof(text)!='undefined') {
-			this._statusText = text;
-		}
-	}
-	
-	this.handleRequest = function() 
+
+	this._handleRequest = function() 
 	{		
 		//delete this._errorHandler;
 		delete this._sent;
@@ -358,25 +347,14 @@ var RequestController = new function()
 			try {
 				this._handlePage();
 			}catch(e) {
-				RequestController.writeResponse();
+				RequestController._writeResponse();
 				return;
 			}
 		}
 		
-		this.writeResponse();
+		this._writeResponse();
 	}
 
-	this.addRequestHandler = function(name, func) {
-		this._requests[name] = func;
-	}
-
-	this.getRequestHandlers = function(name, func) {
-		return this._requests;
-	}
-
-	this.getRequestControllers = function() {
-		return this._requestControllers;
-	}	
 		
 	this._processRequest = function(requestName) {
 	    if (typeof(this._requests[requestName])!='function') return true;
@@ -392,31 +370,18 @@ var RequestController = new function()
 				try {
 					this._errorHandler.call(this, e);
 				} catch (err) {
-					RequestController.printErrorIfNeeded(err);
+					RequestController._printErrorIfNeeded(err);
 				}
 			} else 
 			{
-			   RequestController.printErrorIfNeeded(e);			   						
+			   RequestController._printErrorIfNeeded(e);			   						
 			}						
 			return false;
 		}		
 		return true;
 	}	
-	
-	this.response = function(txt, clear) {
-		if (clear === true) this._response = '';
-		this._response += txt;
-	}
 
-	this.getPageStack = function() {
-		return  this.pageStack;
-	}
-	
-	this.getPagePath = function() {
-		return this.pageStack[this.pageStack.length-1];
-	}
-
-	this.require = function(page, once, haltOnErrors){
+	this._require = function(page, once, haltOnErrors){
 		var rc = RequestController;
 		var current = rc.pageStack[rc.pageStack.length-1];
 		var pagePath = path.resolve(path.dirname(current), page);
@@ -431,19 +396,22 @@ var RequestController = new function()
 		rc.pageStack.pop();
 	}	
 	
-	this.printErrorIfNeeded = function(e)
+	this._printErrorIfNeeded = function(e)
 	{
 	   if (!(e instanceof RequestControllerExit))
 	   {
 		   RequestController.responseStatus(200, 'OK');
-		   RequestController.response("Error: "+e.stack+''+e.message, true);
-		   RequestController.writeResponse();
+		   RequestController.response(e.stack+''+e.message, true);
+		   RequestController._writeResponse();
 		   return true;
 	   } else {
-		   RequestController.writeResponse();
+		   RequestController._writeResponse();
 	   }
 	   return false;
 	}	
+	
+////////////////////////
+	//API 
 	
 	this.setErrorHandler = function(func) {
 		this._errorHandler = func;	
@@ -490,7 +458,7 @@ var RequestController = new function()
 	//page functions
 	
 	this.url = function(txt) {
-		var sc = RequestController.getScriptName();
+		var sc = RequestController._requestPath;
 		return sc.substring(0, sc.lastIndexOf('/'))+'/'+txt;
 	}	
 
@@ -503,13 +471,59 @@ var RequestController = new function()
 	}
 	
 	this.include = function(what, required){ 
-		RequestController.require(what, false, required);
+		RequestController._require(what, false, required);
 	}
 	
 	this.includeOnce = function(what, required){ 
-		RequestController.require(what, true, required);
+		RequestController._require(what, true, required);
 	}
 	
+	
+	this.response = function(txt, clear) {
+		if (clear === true) RequestController._response = '';
+		RequestController._response += txt;
+	}
+
+	this.getPageStack = function() {
+		return  RequestController.pageStack;
+	}
+	
+	this.getPagePath = function() {
+		return RequestController.pageStack[RequestController.pageStack.length-1];
+	}
+	
+
+	this.addRequestHandler = function(name, func) {
+		RequestController._requests[name] = func;
+	}
+
+	this.getRequestHandlers = function(name, func) {
+		return RequestController._requests;
+	}
+
+	this.getRequestControllers = function() {
+		return RequestController._requestControllers;
+	}		
+	
+	this.handleRequest = function() {
+		RequestController._handleRequest.call(RequestController);
+	}
+		
+	this.responseStatus = function(code, text) {
+		var self = RequestController;
+		if (isNaN(code)) throw new Error("invalid reponse status code: " + code);
+		self._statusCode = code;
+		if (self._statusCode != 200) {
+			delete self._statusText;
+		}
+		if (typeof(text)!='undefined') {
+			self._statusText = text;
+		}
+	}
+		
+	this.getServerRoot = function() {
+		RequestController._getServerRoot.call(RequestController);
+	}
 }
 	
 RequestController._setup();
