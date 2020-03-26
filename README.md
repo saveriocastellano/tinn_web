@@ -16,3 +16,6 @@ Or as a local package by adding the `-g` flag:
 ```sh
 tinn install tinn_web -g
 ```
+
+# Usage #
+See the [wiki page](https://github.com/saveriocastellano/tinn/wiki/TINN-Web)
