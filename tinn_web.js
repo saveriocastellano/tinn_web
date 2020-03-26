@@ -22,7 +22,7 @@ var RequestController = new function()
 {	
 	this.DEFAULT_PAGE = 'index.html';
 	this._requests = {};
-	this._pageEnv = ['echo', 'exit', 'url', 'include', 'includeOnce', 'setHeader', 'getHeader', 'getHeaders', 'getParam'];
+	this._pageEnv = ['echo', 'exit', 'url', 'include', 'includeOnce', 'setHeader', 'getHeader', 'getHeaders', 'getParam', 'getParams'];
 	this._httpEnv = [
 		'GATEWAY_INTERFACE',
 		'SERVER_SOFTWARE',
@@ -65,20 +65,21 @@ var RequestController = new function()
 		
 	}
 	
-	this._defaultRequestHandler = function(requests){
+	this._defaultRequestController = function(){
 		
-		var requestName = '';
-		if (typeof(this._script)=='undefined') return;
-		var scriptParts = this._script.split('/');
-		for (var i=0; i<scriptParts.length; i++)
+		var requestKey = '';
+		if (typeof(this._requestPath)=='undefined') return;
+		var reqParts = this._requestPath.split('/');
+		for (var i=0; i<reqParts.length; i++)
 		{
-		   if (scriptParts[i]=='') continue;
-		   requestName += scriptParts[i].split(".")[0].charAt(0).toUpperCase()+scriptParts[i].split(".")[0].substring(1);
-		   if (!this.processRequest(requestName)) break;
+		   if (reqParts[i]=='') continue;
+		   var reqPart = reqParts[i].split(".")[0];
+		   requestKey += reqPart.charAt(0).toUpperCase()+reqPart.substring(1).toLowerCase();
+		   if (!this._processRequest(requestKey)) break;
 		} 	
 	}
 	
-	this._requestHandlers = [this._defaultRequestHandler];		
+	this._requestControllers = [this._defaultRequestController];		
 		
 	this._getCacheDir = function(){ 
 		if (!this.CACHE_DIR) {
@@ -287,7 +288,7 @@ var RequestController = new function()
 			this._headers['Content-type'] = 'text/html';
 			this.pageCtx = {};
 			
-			var pagePath = this._getPagePath(this._script.replace(/\//g, path.sep).substring(1));
+			var pagePath = this._getPagePath(this._requestPath.replace(/\//g, path.sep).substring(1));
 			var pageName = pagePath.split(path.sep).reverse()[0];
 			if (OS.isDirAndReadable(pagePath) && OS.isFileAndReadable(path.resolve(pagePath, 'index.html'))) {
 				pagePath = path.resolve(pagePath, this.DEFAULT_PAGE);
@@ -302,8 +303,8 @@ var RequestController = new function()
 	
 	this._handleScript = function()
 	{
-		for (var i=0; i<this._requestHandlers.length; i++){
-			this._requestHandlers[i].call(RequestController, this._requests);			
+		for (var i=0; i<this._requestControllers.length; i++){
+			this._requestControllers[i].call(RequestController);			
 		}
 	}	
 	
@@ -342,7 +343,7 @@ var RequestController = new function()
 		this._response = '';
 		this._statusCode = 200;
 		this._statusText = 'OK';
-		this._script = Http.getParam("SCRIPT_NAME");
+		this._requestPath = Http.getParam("SCRIPT_NAME");
 		this._qStr = {};
 		var qStrParts = Http.getParam('QUERY_STRING','').split("&");
 		for (var i=0; i<qStrParts.length;i++) {
@@ -365,19 +366,19 @@ var RequestController = new function()
 		this.writeResponse();
 	}
 
-	this.addRequest = function(name, func) {
+	this.addRequestHandler = function(name, func) {
 		this._requests[name] = func;
 	}
 
-	this.getRequests = function(name, func) {
+	this.getRequestHandlers = function(name, func) {
 		return this._requests;
 	}
 
-	this.getRequestHandlers = function() {
-		return this._requestHandlers;
+	this.getRequestControllers = function() {
+		return this._requestControllers;
 	}	
 		
-	this.processRequest = function(requestName) {
+	this._processRequest = function(requestName) {
 	    if (typeof(this._requests[requestName])!='function') return true;
 		this._isScript = true;
 
@@ -481,7 +482,11 @@ var RequestController = new function()
 	this.getParam = function(name) {
 		return RequestController._qStr[name];
 	}
-		
+
+	this.getParams = function(name) {
+		return RequestController._qStr;
+	}
+
 	//page functions
 	
 	this.url = function(txt) {
