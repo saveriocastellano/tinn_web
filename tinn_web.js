@@ -100,8 +100,8 @@ var RequestController = new function()
 	this._getCachedPage = function(pagePath)
 	{
 		var cachePath = RequestController._getCachePagePath(pagePath);
-		if (OS.isFileAndReadable(cachePath) && OS.lastModifiedTime(cachePath) >= OS.lastModifiedTime(pagePath)) {
-			return OS.readFile(cachePath);
+		if (os.isFileAndReadable(cachePath) && os.lastModifiedTime(cachePath) >= os.lastModifiedTime(pagePath)) {
+			return os.readFile(cachePath);
 		}
 		return null;
 	}
@@ -177,14 +177,14 @@ var RequestController = new function()
 		if (cachedPage)
 		{			
 			RequestController._runCachedPage.call(this.pageCtx, pagePath);
-		} else if (OS.isFileAndReadable(pagePath))	
+		} else if (os.isFileAndReadable(pagePath))	
 		{
 			var pageOut = '';
 			
 			try {
 
 				//render page and run
-				var pageContent = OS.readFile(pagePath);
+				var pageContent = os.readFile(pagePath);
 				var inJs = false;							
 				var inPrintJs = false;
 				
@@ -247,12 +247,12 @@ var RequestController = new function()
 	this._cachePage = function(page, content) {
 		var dst = RequestController._getCachePagePath(page);
 		//create dirs if neededed
-		if (!OS.isDirAndReadable(path.dirname(dst))) {
-			if (OS.mkpath(path.dirname(dst))==-1) {
+		if (!os.isDirAndReadable(path.dirname(dst))) {
+			if (os.mkpath(path.dirname(dst))==-1) {
 				throw new Error('Error creating cache directory: ' + path.dirname(dst));
 			}
 		}
-		OS.writeFile(dst, content);
+		os.writeFile(dst, content);
 	}
 	
 	this._reportPageError = function(e, halt) {
@@ -290,7 +290,7 @@ var RequestController = new function()
 			
 			var pagePath = this._getPagePath(this._requestPath.replace(/\//g, path.sep).substring(1));
 			var pageName = pagePath.split(path.sep).reverse()[0];
-			if (OS.isDirAndReadable(pagePath) && OS.isFileAndReadable(path.resolve(pagePath, 'index.html'))) {
+			if (os.isDirAndReadable(pagePath) && os.isFileAndReadable(path.resolve(pagePath, 'index.html'))) {
 				pagePath = path.resolve(pagePath, this.DEFAULT_PAGE);
 				pageName = this.DEFAULT_PAGE;
 			}
